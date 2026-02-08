@@ -1,0 +1,65 @@
+﻿name: release-win32
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-win32:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Download log-core (win32)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $ProgressPreference = "SilentlyContinue"
+          $url = "https://github.com/maddinat0r/samp-log-core/releases/download/v0.5/samp-log-core-v0.5-win32.zip"
+          Invoke-WebRequest -Uri $url -OutFile "samp-log-core.zip"
+          Expand-Archive -Force "samp-log-core.zip" -DestinationPath "deps"
+
+      - name: Configure (CMake)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $logcoreDir = (Resolve-Path "deps/samp-log-core-v0.5-win32/cmake").Path
+          cmake -S . -B build -A Win32 -Dlog-core_DIR="$logcoreDir" -DLOG_PLUGIN_VERSION="${{ github.ref_name }}"
+
+      - name: Build (Release)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          cmake --build build --config Release
+
+      - name: Package (zip)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tag = "${{ github.ref_name }}"
+          $outDir = "package/log-plugin-$tag-win32"
+          New-Item -ItemType Directory -Force "$outDir/plugins" | Out-Null
+          New-Item -ItemType Directory -Force "$outDir/pawno/include" | Out-Null
+
+          Copy-Item -Force "build/src/Release/log-plugin.dll" "$outDir/plugins/"
+          Copy-Item -Force "deps/samp-log-core-v0.5-win32/bin/log-core2.dll" "$outDir/"
+          Copy-Item -Force "build/src/log-plugin.inc" "$outDir/pawno/include/"
+          Copy-Item -Force "README.md" "$outDir/"
+          Copy-Item -Force "LICENSE" "$outDir/"
+
+          $zip = "log-plugin-$tag-win32.zip"
+          if (Test-Path $zip) { Remove-Item -Force $zip }
+          Compress-Archive -Path "$outDir/*" -DestinationPath $zip
+
+      - name: Create GitHub Release + Upload Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            log-plugin-${{ github.ref_name }}-win32.zip
