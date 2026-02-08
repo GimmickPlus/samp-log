@@ -1,9 +1,5 @@
-include(AMXConfig)
-include(AddSAMPPlugin)
-
-
-set(SAMP_SDK_ROOT "${PROJECT_SOURCE_DIR}/libs/sdk")
-find_package(SAMPSDK REQUIRED)
+set(SAMPSDK_DIR "${PROJECT_SOURCE_DIR}/libs/sdk")
+set(SAMPSDK_INCLUDE_DIR "${SAMPSDK_DIR}")
 
 set(LOG_PLUGIN_CONFIG_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/config_headers")
 
@@ -20,11 +16,13 @@ configure_file(
 )
 
 
-add_samp_plugin(log-plugin 
+add_library(log-plugin MODULE
 	${SAMPSDK_DIR}/amxplugin.cpp
 	${SAMPSDK_DIR}/amxplugin2.cpp
 	PluginLog.cpp
 	PluginLog.hpp
+	FileLogWriter.cpp
+	FileLogWriter.hpp
 	LogManager.cpp
 	LogManager.hpp
 	natives.cpp
@@ -35,6 +33,7 @@ add_samp_plugin(log-plugin
 	ServerLogHook.hpp
 	Singleton.hpp
 	main.cpp
+	PluginConfig.hpp
 	sdk.hpp
 	plugin.def
 )
@@ -42,6 +41,11 @@ add_samp_plugin(log-plugin
 if (UNIX)
 	target_sources(log-plugin PUBLIC ${SAMPSDK_DIR}/amx/getch.c)
 endif()
+
+set_target_properties(log-plugin PROPERTIES
+	PREFIX ""
+	OUTPUT_NAME "log-plugin"
+)
 
 set_property(TARGET log-plugin PROPERTY CXX_STANDARD 11)
 set_property(TARGET log-plugin PROPERTY CXX_STANDARD_REQUIRED ON)
@@ -56,6 +60,7 @@ if(MSVC)
 	target_compile_definitions(log-plugin PRIVATE
 		BOOST_ALL_NO_LIB # disable auto-linking
 		_CRT_SECURE_NO_WARNINGS
+		HAVE_STDINT_H # amx.h: use <stdint.h> instead of redefining int32_t/uint32_t in C++
 		NOMINMAX
 		_WIN32_WINNT=0x0600
 		_SCL_SECURE_NO_WARNINGS
@@ -72,6 +77,7 @@ endif()
 # increase warning levels
 if (MSVC)
 	target_compile_options(log-plugin PRIVATE
+		/utf-8
 		/W4
 		/WX
 		/permissive-

@@ -14,21 +14,29 @@ public:
 	using Id = unsigned int;
 
 public:
-	Logger(samplog::Logger_t &&logger, bool debuginfo) :
+	Logger(std::string name, samplog::Logger_t &&logger, bool debuginfo) :
+		m_Name(std::move(name)),
 		m_Logger(std::move(logger)),
 		m_DebugInfos(debuginfo)
 	{ }
 	~Logger() = default;
 
 	Logger(const Logger&) = delete;
-	Logger operator=(const Logger&) = delete;
+	Logger &operator=(const Logger&) = delete;
 	Logger(Logger &&logger) :
+		m_Name(std::move(logger.m_Name)),
 		m_Logger(std::move(logger.m_Logger)),
 		m_DebugInfos(logger.m_DebugInfos)
 	{ }
-	Logger operator=(Logger &&logger)
+	Logger &operator=(Logger &&logger)
 	{
-		return Logger(std::move(logger.m_Logger), logger.m_DebugInfos);
+		if (this != &logger)
+		{
+			m_Name = std::move(logger.m_Name);
+			m_Logger = std::move(logger.m_Logger);
+			m_DebugInfos = logger.m_DebugInfos;
+		}
+		return *this;
 	}
 
 public:
@@ -40,6 +48,7 @@ public:
 	}
 
 private:
+	std::string m_Name;
 	samplog::Logger_t m_Logger;
 
 	bool m_DebugInfos;

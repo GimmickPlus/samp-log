@@ -1,6 +1,7 @@
 #include "natives.hpp"
 #include "LogManager.hpp"
 #include "PluginLog.hpp"
+#include "PluginConfig.hpp"
 
 #include <fmt/format.h>
 
@@ -76,9 +77,13 @@ AMX_DECLARE_NATIVE(Native::Log)
 	const samplog::LogLevel loglevel = static_cast<decltype(loglevel)>(params[2]);
 	if (!logger.IsLogLevel(loglevel))
 	{
-		PluginLog::Get()->LogNative(LogLevel::DEBUG, 
-			"log level not set, not logging message");
-		return 0;
+		if (LogPluginHasConfig())
+		{
+			PluginLog::Get()->LogNative(LogLevel::DEBUG,
+				"log level not set, not logging message");
+			return 0;
+		}
+		// No log-config.yml: still allow logging and let Logger::Log() fallback to file writer.
 	}
 
 

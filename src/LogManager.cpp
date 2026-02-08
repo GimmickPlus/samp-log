@@ -1,11 +1,26 @@
 #include "LogManager.hpp"
 #include "PluginLog.hpp"
+#include "FileLogWriter.hpp"
+#include "PluginConfig.hpp"
 
 
 bool Logger::Log(samplog::LogLevel level, std::string &&msg, AMX *amx)
 {
 	PluginLog::Get()->Log(samplog::LogLevel::DEBUG, "Logger::Log(level={}, msg='{}', amx={})",
 		level, msg, static_cast<const void *>(amx));
+
+	// If there's no log-config.yml, samplog/log-core might be effectively disabled.
+	// Fallback: write to scriptfiles/samp-log/<logger>.log so CreateLog/Log "just works".
+	if (!LogPluginHasConfig())
+	{
+		std::string path("scriptfiles/samp-log/");
+		path.append(m_Name);
+		path.append(".log");
+
+		msg.append("\r\n");
+		(void)FileLogWriter::Get()->Enqueue(std::move(path), std::move(msg));
+		return true;
+	}
 
 	bool ret_val = false;
 	std::vector<samplog::AmxFuncCallInfo> call_info;
@@ -56,6 +71,6 @@ Logger::Id LogManager::Create(std::string logname, bool debuginfo)
 	PluginLog::Get()->Log(samplog::LogLevel::INFO, 
 		"created logger '{}' with id {}", logname, id);
 
-	m_Logs.emplace(id, Logger(samplog::Api::Get()->CreateLogger(logname.c_str()), debuginfo));
+	m_Logs.emplace(id, Logger(logname, samplog::Api::Get()->CreateLogger(logname.c_str()), debuginfo));
 	return id;
 }

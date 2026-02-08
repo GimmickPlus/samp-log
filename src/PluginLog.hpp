@@ -74,6 +74,8 @@ public:
 	template<typename... Args>
 	inline void Log(LogLevel level, const char *format, Args &&...args)
 	{
+		if (!IsLogLevel(level))
+			return;
 		auto str = fmt::format(format, std::forward<Args>(args)...);
 		m_Logger.Log(level, str.c_str());
 	}
@@ -89,6 +91,8 @@ public:
 	inline void Log(LogLevel level, std::vector<AmxFuncCallInfo> const &callinfo,
 		const char *format, Args &&...args)
 	{
+		if (!IsLogLevel(level))
+			return;
 		auto str = fmt::format(format, std::forward<Args>(args)...);
 		m_Logger.Log(level, str.c_str(), callinfo);
 	}

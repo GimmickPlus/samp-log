@@ -11,8 +11,10 @@ void ServerLogHook::logprintf(char* format, ...)
 	va_list args;
 	va_start(args, format);
 
-	char buffer[512];
-	vsprintf(buffer, format, args);
+	char buffer[1024];
+	// Avoid buffer overflows from server-provided format strings.
+	vsnprintf(buffer, sizeof(buffer), format, args);
+	buffer[sizeof(buffer) - 1] = '\0';
 
 	va_end(args);
 

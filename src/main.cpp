@@ -5,12 +5,21 @@
 #include "PluginLog.hpp"
 #include "SampConfigReader.hpp"
 #include "ServerLogHook.hpp"
+#include "FileLogWriter.hpp"
+#include "PluginConfig.hpp"
 
 #include <samplog/samplog.hpp>
 
+#include <fstream>
 
 extern void	*pAMXFunctions;
 logprintf_t logprintf;
+
+static bool g_has_log_config = false;
+bool LogPluginHasConfig()
+{
+	return g_has_log_config;
+}
 
 
 PLUGIN_EXPORT unsigned int PLUGIN_CALL Supports()
@@ -24,6 +33,10 @@ PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData)
 	logprintf = (logprintf_t)ppData[PLUGIN_DATA_LOGPRINTF];
 	
 	samplog::Api::Get(); // force init
+	FileLogWriter::Get()->Start();
+
+	std::ifstream cfg("log-config.yml");
+	g_has_log_config = cfg.good();
 
 	std::string hook_setting_value;
 	if (SampConfigReader::Get()->GetVar("logplugin_capture_serverlog", hook_setting_value) &&
@@ -41,6 +54,7 @@ PLUGIN_EXPORT void PLUGIN_CALL Unload()
 	SampConfigReader::Singleton::Destroy();
 	ServerLogHook::Singleton::Destroy();
 	LogManager::Singleton::Destroy();
+	FileLogWriter::Singleton::Destroy();
 	PluginLog::Singleton::Destroy();
 
 	samplog::Api::Destroy();
