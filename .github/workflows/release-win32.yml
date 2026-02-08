@@ -14,8 +14,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      - name: Fetch build dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force libs | Out-Null
+          git clone --depth 1 --branch 6.2.1 https://github.com/fmtlib/fmt.git libs/fmt
+          git clone --depth 1 https://github.com/Cxbx-Reloaded/subhook.git libs/subhook
+          git clone --depth 1 https://github.com/maddinat0r/samp-plugin-sdk.git libs/sdk
 
       - name: Download log-core (win32)
         shell: pwsh
